@@ -39,8 +39,8 @@ pub use frame_support::{
 };
 use pallet_transaction_payment::CurrencyAdapter;
 
-/// Import the template pallet.
-pub use pallet_template;
+/// Import the connectfour pallet.
+pub use pallet_connectfour;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -269,8 +269,13 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the pallet-template in pallets/template.
-impl pallet_template::Config for Runtime {
+/// Configure the pallet-connectfour in pallets/connectfour.
+impl pallet_connectfour::Config for Runtime {
+	type Event = Event;
+}
+
+/// Used for test_module
+impl pallet_matchmaker::Config for Runtime {
 	type Event = Event;
 }
 
@@ -290,7 +295,9 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>},
+		// Jeton Network Match Maker
+		MatchMaker: pallet_matchmaker::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

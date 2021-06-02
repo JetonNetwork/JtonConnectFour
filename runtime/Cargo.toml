@@ -45,8 +45,11 @@ sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com
 sp-transaction-pool = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 sp-version = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 
-# local dependencies
-pallet-template = {default-features = false, version = '3.0.0', path = '../pallets/template'}
+# local pallets
+pallet-connectfour = {default-features = false, version = '3.0.0', path = '../pallets/connectfour'}
+
+# external pallets
+pallet-matchmaker = {default-features = false, version = '0.1.0', git = 'https://github.com/JetonNetwork/pallet-jton-matchmaker.git'}
 
 [features]
 default = ['std']
@@ -57,7 +60,7 @@ runtime-benchmarks = [
 	'frame-system/runtime-benchmarks',
 	'hex-literal',
 	'pallet-balances/runtime-benchmarks',
-	'pallet-template/runtime-benchmarks',
+	'pallet-connectfour/runtime-benchmarks',
 	'pallet-timestamp/runtime-benchmarks',
 	'sp-runtime/runtime-benchmarks',
 ]
@@ -72,10 +75,11 @@ std = [
 	'pallet-grandpa/std',
 	'pallet-randomness-collective-flip/std',
 	'pallet-sudo/std',
-	'pallet-template/std',
 	'pallet-timestamp/std',
 	'pallet-transaction-payment-rpc-runtime-api/std',
 	'pallet-transaction-payment/std',
+	'pallet-connectfour/std',
+	'pallet-matchmaker/std',
 	'sp-api/std',
 	'sp-block-builder/std',
 	'sp-consensus-aura/std',

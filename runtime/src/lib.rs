@@ -272,6 +272,7 @@ impl pallet_sudo::Config for Runtime {
 /// Configure the pallet-connectfour in pallets/connectfour.
 impl pallet_connectfour::Config for Runtime {
 	type Event = Event;
+	type Randomness = RandomnessCollectiveFlip;
 }
 
 /// Used for test_module
@@ -294,7 +295,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		// Include the custom logic from the pallet-template in the runtime.
+		// Connect Four Game
 		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>},
 		// Jeton Network Match Maker
 		MatchMaker: pallet_matchmaker::{Pallet, Call, Storage, Event<T>},

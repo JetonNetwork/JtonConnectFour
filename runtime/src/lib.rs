@@ -273,6 +273,7 @@ impl pallet_sudo::Config for Runtime {
 impl pallet_connectfour::Config for Runtime {
 	type Event = Event;
 	type Randomness = RandomnessCollectiveFlip;
+	//type WeightInfo = pallet_connectfour::weights::SubstrateWeight<Runtime>;
 }
 
 /// Used for test_module

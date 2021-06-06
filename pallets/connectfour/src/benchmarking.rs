@@ -5,7 +5,7 @@ use super::*;
 use frame_system::RawOrigin;
 use frame_benchmarking::{benchmarks, whitelisted_caller, impl_benchmark_test_suite};
 #[allow(unused)]
-use crate::Pallet as Template;
+use crate::Pallet as ConnectFour;
 
 benchmarks! {
 	do_something {
@@ -18,7 +18,7 @@ benchmarks! {
 }
 
 impl_benchmark_test_suite!(
-	Template,
+	ConnectFour,
 	crate::mock::new_test_ext(),
 	crate::mock::Test,
 );

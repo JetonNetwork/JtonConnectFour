@@ -8,6 +8,9 @@ use codec::{Encode, Decode};
 use frame_support::{
 	traits::{Randomness},
 };
+use frame_system::{
+	WeightInfo
+};
 use sp_runtime::{
 	traits::{Hash, TrailingZeroInput}
 };
@@ -25,6 +28,9 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+
+// importing the `weights.rs` here
+pub mod weights;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -52,6 +58,9 @@ pub mod pallet {
 		
 		/// The generator used to supply randomness to contracts through `seal_random`.
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
+
+		// /// Weight information for extrinsics in this pallet.
+		//type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::pallet]

@@ -35,6 +35,11 @@ mod benchmarking;
 // importing the `weights.rs` here
 pub mod weights;
 
+/// Implementations of some helper traits passed into runtime modules as associated types.
+pub mod connectfour;
+use connectfour::{Logic};
+
+
 /// A type alias for the balance type from this pallet's point of view.
 //type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
 //const MILLICENTS: u32 = 1_000_000_000;

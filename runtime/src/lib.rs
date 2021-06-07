@@ -297,7 +297,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		// Connect Four Game
-		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>},
+		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>, Config<T>},
 		// Jeton Network Match Maker
 		MatchMaker: pallet_matchmaker::{Pallet, Call, Storage, Event<T>},
 	}

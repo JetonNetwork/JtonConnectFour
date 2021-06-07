@@ -6,6 +6,7 @@
 
 use codec::{Encode, Decode};
 use frame_support::{
+	log,
 	traits::{Randomness},
 };
 use frame_system::{
@@ -17,7 +18,9 @@ use sp_runtime::{
 use sp_std::vec::{
 	Vec
 };
+use log::info;
 
+// Re-export pallet items so that they can be accessed from the crate namespace.
 pub use pallet::*;
 
 #[cfg(test)]
@@ -31,6 +34,10 @@ mod benchmarking;
 
 // importing the `weights.rs` here
 pub mod weights;
+
+/// A type alias for the balance type from this pallet's point of view.
+//type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
+//const MILLICENTS: u32 = 1_000_000_000;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -76,6 +83,10 @@ pub mod pallet {
 	pub type Something<T> = StorageValue<_, u32>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn founder_key)]
+	pub type FounderKey<T: Config> = StorageValue<_, T::AccountId>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn boards)]
 	pub type Boards<T: Config> = StorageMap<_, Identity, T::Hash, BoardStruct<T::AccountId, T::BlockNumber>, ValueQuery>;
 
@@ -85,6 +96,30 @@ pub mod pallet {
 	// Nonce used for generating a different seed each time.
 	#[pallet::storage]
 	pub type Nonce<T: Config> = StorageValue<_, u64, ValueQuery, NonceDefault<T>>;
+
+	// The genesis config type.
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub founder_key: T::AccountId,
+	}
+
+	// The default value for the genesis config type.
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self {
+				founder_key: Default::default(),
+			}
+		}
+	}
+
+	// The build of genesis for the pallet.
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			<FounderKey<T>>::put(&self.founder_key);
+		}
+	}
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -106,8 +141,35 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
+	// Pallet implements [`Hooks`] trait to define some logic to execute in some context.
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		// `on_initialize` is executed at the beginning of the block before any extrinsic are
+		// dispatched.
+		//
+		// This function must return the weight consumed by `on_initialize` and `on_finalize`.
+		fn on_initialize(_: T::BlockNumber) -> Weight {
+			// Anything that needs to be done at the start of the block.
+			// We don't do anything here.
+			0
+		}
+
+		// `on_finalize` is executed at the end of block after all extrinsic are dispatched.
+		fn on_finalize(_n: BlockNumberFor<T>) {
+			// Perform necessary data/state clean up here.
+		}
+
+		// A runtime code run after every block and have access to extended set of APIs.
+		//
+		// For instance you can generate extrinsics for the upcoming produced block.
+		fn offchain_worker(_n: T::BlockNumber) {
+			// We don't do anything here.
+			// but we could dispatch extrinsic (transaction/unsigned/inherent) using
+			// sp_io::submit_extrinsic.
+			// To see example on offchain worker, please refer to example-offchain-worker pallet
+		 	// accompanied in this repository.
+		}
+	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
@@ -118,10 +180,16 @@ pub mod pallet {
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
+
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
 			let who = ensure_signed(origin)?;
+
+			// Print out log or debug message in the console via log::{error, warn, info, debug, trace},
+			// accepting format strings similar to `println!`.
+			// https://substrate.dev/rustdocs/v3.0.0/log/index.html
+			info!("New value is now: {:?}", something);
 
 			// Update storage.
 			<Something<T>>::put(something);
@@ -150,15 +218,6 @@ pub mod pallet {
 				},
 			}
 		}
-
-		// /// Reads the nonce from storage, increments the stored nonce, and returns the encoded nonce to the caller.
-		//#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		//pub fn encode_and_update_nonce(
-		//) -> Vec<u8> {
-		//	let nonce = Nonce::get();
-		//	Nonce::put(nonce.wrapping_add(1));
-		//	nonce.encode()
-		//}
 	}
 }
 

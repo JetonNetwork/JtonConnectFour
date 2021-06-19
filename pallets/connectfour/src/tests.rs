@@ -1,4 +1,6 @@
+use super::*;
 use crate::{Error, mock::*};
+
 use frame_support::{assert_ok, assert_noop};
 
 #[test]
@@ -23,7 +25,7 @@ fn correct_error_for_none_value() {
 }
 
 #[test]
-fn test_game() {
+fn test_game_creation() {
 	new_test_ext().execute_with(|| {
 
 		// Test player can not play against himself
@@ -34,6 +36,7 @@ fn test_game() {
 
 		// Test game creation between to different players
 		assert_ok!(ConnectFour::new_game(Origin::signed(1), 2));
+		run_to_block(1);
 
 		let board_id_1 = ConnectFour::player_board(1);
 		let board_id_2 = ConnectFour::player_board(2);
@@ -49,6 +52,33 @@ fn test_game() {
 			ConnectFour::new_game(Origin::signed(3), 2),
 			Error::<Test>::PlayerBoardExists
 		);
-		
+
+		let board = ConnectFour::boards(board_id_1);
+
+		assert_eq!(board.last_turn, 0);
+
+	});
+}
+
+#[test]
+fn test_game_play() {
+	new_test_ext().execute_with(|| {
+
+		// Test game creation between to different players
+		assert_ok!(ConnectFour::new_game(Origin::signed(1), 2));
+		run_next_block();
+
+		let board_id = ConnectFour::player_board(1);
+
+		let board = ConnectFour::boards(board_id);
+
+		if board.board_state == BoardState::Red {
+			assert_ok!(ConnectFour::play_turn(Origin::signed(1)));
+			run_next_block();
+		}
+
+		//assert_eq!(board.board_state, BoardState::Blue);
+		assert_eq!(board.last_turn, 0);
+
 	});
 }

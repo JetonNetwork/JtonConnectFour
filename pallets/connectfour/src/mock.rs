@@ -77,6 +77,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		t.into()
 }
 
+pub fn run_next_block() {
+	run_to_block(System::block_number() + 1);
+}
+
 /// Run until a particular block.
 pub fn run_to_block(n: u64) {
 	while System::block_number() < n {

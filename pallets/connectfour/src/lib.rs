@@ -169,6 +169,8 @@ pub mod pallet {
 		StorageOverflow,
 		/// Player already has a board which is being played.
 		PlayerBoardExists,
+		/// Player board doesn't exist for this player.
+		NoPlayerBoard,
 		/// Player can't play against them self.
 		NoFakePlay,
 	}
@@ -277,7 +279,22 @@ pub mod pallet {
 		/// Create game for two players
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn play_turn(origin: OriginFor<T>) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
+			
+			let sender = ensure_signed(origin)?;
+
+			// TODO: should PlayerBoard storage here be optional to avoid two reads?
+			ensure!(PlayerBoard::<T>::contains_key(&sender), Error::<T>::NoPlayerBoard);
+			let board_id = Self::player_board(sender);
+	
+			// Get board from player.
+			ensure!(Boards::<T>::contains_key(&board_id), "No board found");
+			let mut board = Self::boards(&board_id);
+			
+			// get current blocknumber
+			let block_number = <frame_system::Pallet<T>>::block_number();
+
+			board.last_turn = block_number;
+			<Boards<T>>::insert(board_id, board);
 			Ok(())
 		}
 	}

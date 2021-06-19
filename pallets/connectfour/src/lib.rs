@@ -47,13 +47,12 @@ use connectfour::{Logic};
 #[derive(Encode, Decode, Clone, PartialEq)]
 pub enum BoardState {
 	None = 0,
-	Red = 1,
-	Blue = 2,
+	Running = 1,
+	Finished = 2,
 	//Winner(AccountId) = 3,
 }
 
 impl Default for BoardState { fn default() -> Self { Self::None } }
-
 
 /// Connect four board structure containing two players and the board
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
@@ -62,10 +61,14 @@ pub struct BoardStruct<Hash, AccountId, BlockNumber, BoardState> {
 	id: Hash,
 	red: AccountId,
 	blue: AccountId,
-	board: [[u8; 7]; 6],
+	board: [[u8; 6]; 7],
 	last_turn: BlockNumber,
+	next_player: u8,
 	board_state: BoardState,
 }
+
+const PLAYER_1: u8 = 1;
+const PLAYER_2: u8 = 2;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -173,6 +176,10 @@ pub mod pallet {
 		NoPlayerBoard,
 		/// Player can't play against them self.
 		NoFakePlay,
+		/// Wrong player for next turn.
+		NotPlayerTurn,
+		/// There was an error while trying to execute something in the logic mod.
+		WrongLogic,
 	}
 
 	// Pallet implements [`Hooks`] trait to define some logic to execute in some context.
@@ -278,23 +285,50 @@ pub mod pallet {
 
 		/// Create game for two players
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn play_turn(origin: OriginFor<T>) -> DispatchResult {
+		pub fn play_turn(origin: OriginFor<T>, column: u8) -> DispatchResult {
 			
 			let sender = ensure_signed(origin)?;
 
+			ensure!(column >= 0 && column < 8, "Game only allows columns between 0 - 7");
+
 			// TODO: should PlayerBoard storage here be optional to avoid two reads?
 			ensure!(PlayerBoard::<T>::contains_key(&sender), Error::<T>::NoPlayerBoard);
-			let board_id = Self::player_board(sender);
+			let board_id = Self::player_board(&sender);
 	
 			// Get board from player.
 			ensure!(Boards::<T>::contains_key(&board_id), "No board found");
 			let mut board = Self::boards(&board_id);
 			
+			let current_player = board.next_player;
+
+			// Check if correct player is at turn
+			if current_player == PLAYER_1 {
+				ensure!(sender == board.red, Error::<T>::NotPlayerTurn);
+				board.next_player = PLAYER_2;
+			} else if current_player == PLAYER_2 {
+				ensure!(sender == board.blue, Error::<T>::NotPlayerTurn);
+				board.next_player = PLAYER_1;
+			} else {
+				return Err(Error::<T>::WrongLogic)?
+			}
+
+			// Check if we can successfully place a stone in that column
+			if !Logic::add_stone(&mut board.board, column, current_player) {
+				return Err(Error::<T>::WrongLogic)?
+			}
+
+			// Check if the last played stone gave us a winner
+			if Logic::evaluate(board.board.clone(), current_player) {
+				board.board_state = BoardState::Finished;
+			}
+
 			// get current blocknumber
 			let block_number = <frame_system::Pallet<T>>::block_number();
-
 			board.last_turn = block_number;
+
+			// Write next board state back into the storage
 			<Boards<T>>::insert(board_id, board);
+			
 			Ok(())
 		}
 	}
@@ -329,7 +363,7 @@ impl<T: Config> Pallet<T> {
 		// get a random hash as board id
 		let board_id = Self::generate_random_hash(b"create", red.clone());
 		// calculate plyer to start the first turn, with the first byte of the board_id random hash
-		let turn_start = if board_id.as_ref()[0] < 128 { BoardState::Red } else { BoardState::Blue };
+		let next_player = if board_id.as_ref()[0] < 128 { PLAYER_1 } else { PLAYER_2 };
 		// get current blocknumber
 		let block_number = <frame_system::Pallet<T>>::block_number();
 		// create a new empty bgame oard
@@ -337,9 +371,10 @@ impl<T: Config> Pallet<T> {
 			id: board_id,
 			red: red,
 			blue: blue,
-			board: [[0u8; 7]; 6],
+			board: [[0u8; 6]; 7],
 			last_turn: block_number,
-			board_state: turn_start,
+			next_player: next_player,
+			board_state: BoardState::Running,
 		};
 		// insert the new board into the storage
 		<Boards<T>>::insert(board_id, board);

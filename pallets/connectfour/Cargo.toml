@@ -28,6 +28,7 @@ frame-benchmarking = {default-features = false, version = '3.1.0', git = 'https:
 serde = '1.0.119'
 sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 sp-io = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+frame-support-test = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 
 [features]
 default = ['std']

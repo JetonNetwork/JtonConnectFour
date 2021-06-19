@@ -49,7 +49,6 @@ pub enum BoardState {
 	None = 0,
 	Running = 1,
 	Finished = 2,
-	//Winner(AccountId) = 3,
 }
 
 impl Default for BoardState { fn default() -> Self { Self::None } }
@@ -299,6 +298,9 @@ pub mod pallet {
 			ensure!(Boards::<T>::contains_key(&board_id), "No board found");
 			let mut board = Self::boards(&board_id);
 			
+			// Board is still open to play and not finished.
+			ensure!(board.board_state == BoardState::Running, "Board is not running, check if already finished.");
+
 			let current_player = board.next_player;
 
 			// Check if correct player is at turn
@@ -317,8 +319,10 @@ pub mod pallet {
 				return Err(Error::<T>::WrongLogic)?
 			}
 
-			// Check if the last played stone gave us a winner
+			// Check if the last played stone gave us a winner or board is full
 			if Logic::evaluate(board.board.clone(), current_player) {
+				board.board_state = BoardState::Finished;
+			} else if Logic::full(board.board.clone()) {
 				board.board_state = BoardState::Finished;
 			}
 

@@ -5,6 +5,17 @@ pub struct Logic {
 
 impl Logic {
 
+    pub fn full(board: [[u8; 6]; 7]) -> bool {
+        let y_pos = board[0].len() - 1;
+        for x_pos in 0..board.len() {
+            if board[x_pos][y_pos] == 0 {
+                return false
+            }
+        }
+        
+        true
+    }
+
     pub fn evaluate(board: [[u8; 6]; 7], player: u8) -> bool {
         // horizontalCheck 
         for y in 0..board[0].len() {

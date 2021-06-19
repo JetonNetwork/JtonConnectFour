@@ -45,13 +45,13 @@ use connectfour::{Logic};
 //const MILLICENTS: u32 = 1_000_000_000;
 
 #[derive(Encode, Decode, Clone, PartialEq)]
-pub enum BoardState {
-	None = 0,
-	Running = 1,
-	Finished = 2,
+pub enum BoardState<AccountId> {
+	None,
+	Running,
+	Finished(AccountId),
 }
 
-impl Default for BoardState { fn default() -> Self { Self::None } }
+impl<AccountId> Default for BoardState<AccountId> { fn default() -> Self { Self::None } }
 
 /// Connect four board structure containing two players and the board
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
@@ -110,7 +110,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn boards)]
 	/// Store all boards that are currently being played.
-	pub type Boards<T: Config> = StorageMap<_, Identity, T::Hash, BoardStruct<T::Hash, T::AccountId, T::BlockNumber, BoardState>, ValueQuery>;
+	pub type Boards<T: Config> = StorageMap<_, Identity, T::Hash, BoardStruct<T::Hash, T::AccountId, T::BlockNumber, BoardState<T::AccountId>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn player_board)]
@@ -288,7 +288,7 @@ pub mod pallet {
 			
 			let sender = ensure_signed(origin)?;
 
-			ensure!(column >= 0 && column < 8, "Game only allows columns between 0 - 7");
+			ensure!(column < 8, "Game only allows columns smaller then 8");
 
 			// TODO: should PlayerBoard storage here be optional to avoid two reads?
 			ensure!(PlayerBoard::<T>::contains_key(&sender), Error::<T>::NoPlayerBoard);
@@ -302,17 +302,21 @@ pub mod pallet {
 			ensure!(board.board_state == BoardState::Running, "Board is not running, check if already finished.");
 
 			let current_player = board.next_player;
+			let current_account;
 
 			// Check if correct player is at turn
 			if current_player == PLAYER_1 {
-				ensure!(sender == board.red, Error::<T>::NotPlayerTurn);
+				current_account = board.red.clone();
 				board.next_player = PLAYER_2;
 			} else if current_player == PLAYER_2 {
-				ensure!(sender == board.blue, Error::<T>::NotPlayerTurn);
+				current_account = board.blue.clone();
 				board.next_player = PLAYER_1;
 			} else {
 				return Err(Error::<T>::WrongLogic)?
 			}
+
+			// Make sure current account is at turn.
+			ensure!(sender == current_account, Error::<T>::NotPlayerTurn);
 
 			// Check if we can successfully place a stone in that column
 			if !Logic::add_stone(&mut board.board, column, current_player) {
@@ -321,9 +325,9 @@ pub mod pallet {
 
 			// Check if the last played stone gave us a winner or board is full
 			if Logic::evaluate(board.board.clone(), current_player) {
-				board.board_state = BoardState::Finished;
+				board.board_state = BoardState::Finished(current_account);
 			} else if Logic::full(board.board.clone()) {
-				board.board_state = BoardState::Finished;
+				board.board_state = BoardState::Finished(Default::default());
 			}
 
 			// get current blocknumber

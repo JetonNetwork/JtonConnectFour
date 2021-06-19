@@ -1,10 +1,20 @@
+use super::*;
 use crate as pallet_connectfour;
+
 use sp_core::H256;
-use frame_support::parameter_types;
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header,
+
+use frame_support::{
+	parameter_types, ord_parameter_types,
+	traits::{OnInitialize, OnFinalize},
 };
-use frame_system as system;
+
+use frame_support_test::TestRandomness;
+use sp_runtime::{
+	BuildStorage,
+	testing::Header,
+	traits::{BlakeTwo256, IdentityLookup},
+};
+//use frame_system as system;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -17,7 +27,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>},
+		ConnectFour: pallet_connectfour::{Pallet, Call, Config<T>, Storage, Event<T>},
 	}
 );
 
@@ -26,7 +36,7 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
-impl system::Config for Test {
+impl frame_system::Config for Test {
 	type BaseCallFilter = ();
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -54,9 +64,33 @@ impl system::Config for Test {
 
 impl pallet_connectfour::Config for Test {
 	type Event = Event;
+	type Randomness = TestRandomness<Self>;
 }
 
-// Build genesis storage according to the mock runtime.
+/// Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	//frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	let t = GenesisConfig {
+			frame_system: Default::default(),
+			pallet_connectfour: Default::default(),
+		}.build_storage().unwrap();
+		t.into()
+}
+
+/// Run until a particular block.
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+
+		if System::block_number() > 1 {
+			// mock on_finalize
+			System::on_finalize(System::block_number());
+			ConnectFour::on_finalize(System::block_number());
+		}
+
+		System::set_block_number(System::block_number() + 1);
+		
+		// mock on_initialize
+		System::on_initialize(System::block_number());
+		ConnectFour::on_initialize(System::block_number());
+	}
 }

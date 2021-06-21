@@ -1,4 +1,29 @@
-# Substrate Node Template
+# Substrate JTON Connect Four Template
+
+### Types
+
+```json
+{
+  "BoardState": {
+    "_enum": [
+      "None",
+      "Running",
+      "Finished(AccountId)"
+    ]
+  },
+  "BoardStruct": {
+    "id": "Hash",
+    "red": "AccountId",
+    "blue": "AccountId",
+    "board": "[[u8; 6]; 7]",
+    "last_turn": "BlockNumber",
+    "next_player": "u8",
+    "board_state": "BoardState"
+  }
+}
+```
+
+### OLD -------------------------------
 
 [![Try on playground](https://img.shields.io/badge/Playground-Node_Template-brightgreen?logo=Parity%20Substrate)](https://playground.substrate.dev/?deploy=node-template)
 

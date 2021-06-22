@@ -142,3 +142,29 @@ fn test_game_play() {
 
 	});
 }
+
+#[test]
+fn test_game_events() {
+	new_test_ext().execute_with(|| {
+
+		let blocks_to_pass = 10;
+		let mut current_block:u64 = 100;
+	
+		// start from block 100
+		run_to_block(current_block);
+
+		assert_eq!(None, ConnectFour::something());
+
+		// Test game creation between to different players
+		assert_ok!(ConnectFour::test_schedule(Origin::signed(PLAYER_1 as u64), blocks_to_pass));
+		
+		run_next_block();
+		current_block = current_block + 1;
+
+		assert_eq!(None, ConnectFour::something());
+
+		run_to_block(current_block + blocks_to_pass);
+
+		assert_eq!(77, ConnectFour::something().unwrap());
+	});
+}

@@ -111,6 +111,7 @@ pub fn run_to_block(n: u64) {
 		if System::block_number() > 1 {
 			// mock on_finalize
 			System::on_finalize(System::block_number());
+			Scheduler::on_finalize(System::block_number());
 			ConnectFour::on_finalize(System::block_number());
 		}
 
@@ -118,6 +119,7 @@ pub fn run_to_block(n: u64) {
 		
 		// mock on_initialize
 		System::on_initialize(System::block_number());
+		Scheduler::on_initialize(System::block_number());
 		ConnectFour::on_initialize(System::block_number());
 	}
 }

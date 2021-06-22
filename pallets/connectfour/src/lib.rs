@@ -69,10 +69,11 @@ pub struct BoardStruct<Hash, AccountId, BlockNumber, BoardState> {
 
 const PLAYER_1: u8 = 1;
 const PLAYER_2: u8 = 2;
+const MAX_BLOCKS_PER_TURN: u8 = 10;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
+	use frame_support::{dispatch::{DispatchResult}, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 
 	// important to use outside structs and consts
@@ -122,6 +123,11 @@ pub mod pallet {
 	#[pallet::getter(fn player_board)]
 	/// Store players active board, currently only one board per player allowed.
 	pub type PlayerBoard<T: Config> = StorageMap<_, Identity, T::AccountId, T::Hash, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn board_schedules)]
+	/// Store players active board, currently only one board per player allowed.
+	pub type BoardSchedules<T: Config> = StorageMap<_, Identity, T::Hash, Option<Vec<u8>>, ValueQuery>;
 
 	// Default value for Nonce
 	#[pallet::type_value]
@@ -339,12 +345,28 @@ pub mod pallet {
 			}
 
 			// get current blocknumber
-			let block_number = <frame_system::Pallet<T>>::block_number();
-			board.last_turn = block_number;
+			let last_turn = <frame_system::Pallet<T>>::block_number();
+			board.last_turn = last_turn;
 
 			// Write next board state back into the storage
 			<Boards<T>>::insert(board_id, board);
-			
+
+			// Cancel scheduled task
+			if BoardSchedules::<T>::contains_key(&board_id) {
+				let old_schedule_id = Self::board_schedules(&board_id);
+				if old_schedule_id.is_some() {
+					// cancel scheduled force end turn
+					if T::Scheduler::cancel_named(
+						old_schedule_id.unwrap(),
+					).is_err() {
+						frame_support::print("LOGIC ERROR: test_schedule/schedule_named failed");
+					}
+				}
+			}
+
+			let schedule_id = Self::schedule_end_turn(board_id, last_turn, last_turn + MAX_BLOCKS_PER_TURN.into());
+			<BoardSchedules<T>>::insert(board_id, schedule_id);
+
 			Ok(())
 		}
 
@@ -369,6 +391,35 @@ pub mod pallet {
 				frame_support::print("LOGIC ERROR: test_schedule/schedule_named failed");
 				return Err(Error::<T>::ScheduleError)?;
 			}
+
+			Ok(())
+		}
+
+		/// Force end turn after max blocks per turn passed.
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		fn force_end_turn(origin: OriginFor<T>, board_id: T::Hash, last_turn: T::BlockNumber) -> DispatchResult {
+			ensure_root(origin)?;
+
+			// Get board from player.
+			ensure!(Boards::<T>::contains_key(&board_id), "No board found.");
+			let mut board = Self::boards(&board_id);
+
+			ensure!(board.last_turn == last_turn, "There has been a move in between.");
+
+			if board.next_player == PLAYER_1 {
+				board.board_state = BoardState::Finished(board.blue.clone());
+			} else if board.next_player == PLAYER_2 {
+				board.board_state = BoardState::Finished(board.red.clone());
+			} else {
+				return Err(Error::<T>::WrongLogic)?
+			}
+
+			// get current blocknumber
+			let last_turn = <frame_system::Pallet<T>>::block_number();
+			board.last_turn = last_turn;
+			
+			// Write next board state back into the storage
+			<Boards<T>>::insert(board_id, board);
 
 			Ok(())
 		}
@@ -425,6 +476,33 @@ impl<T: Config> Pallet<T> {
 
 		return board_id;
 	}
+
+	/// Schedule end turn
+	fn schedule_end_turn(
+		board_id: T::Hash, 
+		last_turn: T::BlockNumber, 
+		end_turn: T::BlockNumber
+	) -> Option<Vec<u8>> {
+
+		//ensure!(end_turn > <frame_system::Pallet<T>>::block_number(), "Can't schedule a end turn in the past.");
+		let schedule_task_id = (CONNECTFOUR_ID, board_id, last_turn).encode();
+
+		if T::Scheduler::schedule_named(
+			schedule_task_id.clone(),
+			DispatchTime::At(end_turn),
+			None,
+			63,
+			frame_system::RawOrigin::Root.into(),
+			Call::force_end_turn(board_id, last_turn).into(),
+		).is_err() {
+			frame_support::print("LOGIC ERROR: test_schedule/schedule_named failed");
+			return None
+		}
+
+		Some(schedule_task_id)
+	}
+
+
 }
 
 

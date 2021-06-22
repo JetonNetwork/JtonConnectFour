@@ -7,13 +7,13 @@
 use codec::{Encode, Decode};
 use frame_support::{
 	log,
-	traits::{Randomness},
+	traits::{Randomness, schedule::{Named, DispatchTime}},
 };
 use frame_system::{
 	WeightInfo
 };
 use sp_runtime::{
-	traits::{Hash, TrailingZeroInput}
+	traits::{Hash, Dispatchable, TrailingZeroInput}
 };
 use sp_std::vec::{
 	Vec
@@ -81,12 +81,17 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		
+		type Proposal: Parameter + Dispatchable<Origin=Self::Origin> + From<Call<Self>>;
+
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		
 		/// The generator used to supply randomness to contracts through `seal_random`.
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 
+		type Scheduler: Named<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
+
+		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
 		// /// Weight information for extrinsics in this pallet.
 		//type WeightInfo: WeightInfo;
 	}

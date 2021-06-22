@@ -3750,6 +3750,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-matchmaker",
  "pallet-randomness-collective-flip",
+ "pallet-scheduler",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -3988,6 +3989,7 @@ dependencies = [
  "frame-support",
  "frame-support-test",
  "frame-system",
+ "pallet-scheduler",
  "parity-scale-codec",
  "serde",
  "sp-core",
@@ -4037,6 +4039,21 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "safe-mix",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-scheduler"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?tag=monthly-2021-05#70ef0afc86cdef0cba09336acffb08bff08540aa"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]

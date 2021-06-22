@@ -37,6 +37,9 @@ pub use frame_support::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 	},
 };
+use frame_system::{
+	EnsureRoot
+};
 use pallet_transaction_payment::CurrencyAdapter;
 
 /// Import the connectfour pallet.
@@ -269,6 +272,23 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+		BlockWeights::get().max_block;
+	pub const MaxScheduledPerBlock: u32 = 50;
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+}
+
 /// Used for test_module
 impl pallet_matchmaker::Config for Runtime {
 	type Event = Event;
@@ -276,8 +296,11 @@ impl pallet_matchmaker::Config for Runtime {
 
 /// Configure the pallet-connectfour in pallets/connectfour.
 impl pallet_connectfour::Config for Runtime {
+	type Proposal = Call;
 	type Event = Event;
 	type Randomness = RandomnessCollectiveFlip;
+	type Scheduler = Scheduler;
+	type PalletsOrigin = OriginCaller;
 	//type WeightInfo = pallet_connectfour::weights::SubstrateWeight<Runtime>;
 }
 
@@ -296,6 +319,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 
 		// Jeton Network Match Maker
 		MatchMaker: pallet_matchmaker::{Pallet, Call, Storage, Event<T>},

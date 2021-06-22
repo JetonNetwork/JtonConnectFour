@@ -137,9 +137,8 @@ fn test_game_play() {
 		
 		assert_ok!(ConnectFour::play_turn(Origin::signed(PLAYER_2 as u64), 1));
 		let board = ConnectFour::boards(board_id);
-		assert!(board.board_state == BoardState::Finished);
-		
-		run_next_block();
-		current_block = current_block + 1;
+		assert!(board.board_state == BoardState::Finished(board.blue));
+		assert_eq!(board.last_turn, current_block);
+
 	});
 }

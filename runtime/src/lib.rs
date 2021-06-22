@@ -115,7 +115,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// up by `pallet_aura` to implement `fn slot_duration()`.
 ///
 /// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
+pub const MILLISECS_PER_BLOCK: u64 = 3000;
 
 // NOTE: Currently it is not possible to change the slot duration after the chain has started.
 //       Attempting to do so will brick block production.
@@ -269,16 +269,16 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+/// Used for test_module
+impl pallet_matchmaker::Config for Runtime {
+	type Event = Event;
+}
+
 /// Configure the pallet-connectfour in pallets/connectfour.
 impl pallet_connectfour::Config for Runtime {
 	type Event = Event;
 	type Randomness = RandomnessCollectiveFlip;
 	//type WeightInfo = pallet_connectfour::weights::SubstrateWeight<Runtime>;
-}
-
-/// Used for test_module
-impl pallet_matchmaker::Config for Runtime {
-	type Event = Event;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -296,10 +296,12 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		// Connect Four Game
-		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>, Config<T>},
+
 		// Jeton Network Match Maker
 		MatchMaker: pallet_matchmaker::{Pallet, Call, Storage, Event<T>},
+
+		// Connect Four Game
+		ConnectFour: pallet_connectfour::{Pallet, Call, Storage, Event<T>, Config<T>},
 	}
 );
 

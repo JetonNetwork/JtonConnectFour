@@ -4,7 +4,7 @@ use crate as pallet_connectfour;
 use sp_core::H256;
 
 use frame_support::{
-	parameter_types, ord_parameter_types,
+	parameter_types,
 	traits::{OnInitialize, OnFinalize},
 };
 

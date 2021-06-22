@@ -70,6 +70,7 @@ pub struct BoardStruct<Hash, AccountId, BlockNumber, BoardState> {
 const PLAYER_1: u8 = 1;
 const PLAYER_2: u8 = 2;
 const MAX_BLOCKS_PER_TURN: u8 = 10;
+const CLEANUP_BOARDS_AFTER: u8 = 20;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -406,20 +407,35 @@ pub mod pallet {
 
 			ensure!(board.last_turn == last_turn, "There has been a move in between.");
 
-			if board.next_player == PLAYER_1 {
-				board.board_state = BoardState::Finished(board.blue.clone());
-			} else if board.next_player == PLAYER_2 {
-				board.board_state = BoardState::Finished(board.red.clone());
-			} else {
-				return Err(Error::<T>::WrongLogic)?
-			}
+			if board.board_state == BoardState::Running {
 
-			// get current blocknumber
-			let last_turn = <frame_system::Pallet<T>>::block_number();
-			board.last_turn = last_turn;
+				if board.next_player == PLAYER_1 {
+					board.board_state = BoardState::Finished(board.blue.clone());
+				} else if board.next_player == PLAYER_2 {
+					board.board_state = BoardState::Finished(board.red.clone());
+				} else {
+					return Err(Error::<T>::WrongLogic)?
+				}
+
+				// get current blocknumber
+				let last_turn = <frame_system::Pallet<T>>::block_number();
+				board.last_turn = last_turn;
+				
+				// Write next board state back into the storage
+				<Boards<T>>::insert(board_id, board);
+
+				// Execute cleanup task
+				let schedule_id = Self::schedule_end_turn(board_id, last_turn, last_turn + CLEANUP_BOARDS_AFTER.into());
+				<BoardSchedules<T>>::insert(board_id, schedule_id);
 			
-			// Write next board state back into the storage
-			<Boards<T>>::insert(board_id, board);
+			} else {
+
+				// do cleanup after final force turn.
+				<Boards<T>>::remove(board_id);
+				<PlayerBoard<T>>::remove(board.red);
+				<PlayerBoard<T>>::remove(board.blue);
+				<BoardSchedules<T>>::remove(board_id);
+			}
 
 			Ok(())
 		}

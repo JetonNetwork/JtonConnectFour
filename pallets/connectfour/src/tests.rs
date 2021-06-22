@@ -209,8 +209,23 @@ fn test_force_turn() {
 		run_to_block(current_block + 10);
 		current_block = current_block + 10;
 
+		// check if force turn ended the game
 		let board = ConnectFour::boards(board_id);
 		assert_eq!(board.last_turn, current_block);
 		assert!(board.board_state == BoardState::Finished(board.blue));
+
+		assert!(Boards::<Test>::contains_key(board_id));
+		assert!(PlayerBoard::<Test>::contains_key(board.red));
+		assert!(PlayerBoard::<Test>::contains_key(board.blue));
+		assert!(BoardSchedules::<Test>::contains_key(board_id));
+
+		run_to_block(current_block + 20);
+		current_block = current_block + 20;
+
+		// check if boards are cleaned up
+		assert!(!Boards::<Test>::contains_key(board_id));
+		assert!(!PlayerBoard::<Test>::contains_key(board.red));
+		assert!(!PlayerBoard::<Test>::contains_key(board.blue));
+		assert!(!BoardSchedules::<Test>::contains_key(board_id));
 	});
 }

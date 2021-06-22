@@ -7,13 +7,13 @@
 use codec::{Encode, Decode};
 use frame_support::{
 	log,
-	traits::{Randomness},
+	traits::{Randomness, LockIdentifier, schedule::{Named, DispatchTime}},
 };
 use frame_system::{
 	WeightInfo
 };
 use sp_runtime::{
-	traits::{Hash, TrailingZeroInput}
+	traits::{Hash, Dispatchable, TrailingZeroInput}
 };
 use sp_std::vec::{
 	Vec
@@ -39,6 +39,7 @@ pub mod weights;
 pub mod connectfour;
 use connectfour::{Logic};
 
+const CONNECTFOUR_ID: LockIdentifier = *b"connect4";
 
 /// A type alias for the balance type from this pallet's point of view.
 //type BalanceOf<T> = <T as pallet_balances::Config>::Balance;
@@ -81,12 +82,17 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		
+		type Proposal: Parameter + Dispatchable<Origin=Self::Origin> + From<Call<Self>>;
+
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		
 		/// The generator used to supply randomness to contracts through `seal_random`.
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 
+		type Scheduler: Named<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
+
+		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
 		// /// Weight information for extrinsics in this pallet.
 		//type WeightInfo: WeightInfo;
 	}
@@ -169,6 +175,8 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		/// Couldn't put off a scheduler task as planned.
+		ScheduleError,
 		/// Player already has a board which is being played.
 		PlayerBoardExists,
 		/// Player board doesn't exist for this player.
@@ -337,6 +345,31 @@ pub mod pallet {
 			// Write next board state back into the storage
 			<Boards<T>>::insert(board_id, board);
 			
+			Ok(())
+		}
+
+		/// An example dispatchable that may throw a custom error.
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn test_schedule(origin: OriginFor<T>, delay: T::BlockNumber) -> DispatchResult {
+
+			let sender = ensure_signed(origin)?;
+
+			let now = <frame_system::Pallet<T>>::block_number();
+
+			let index: u32 = 77;
+			let when = now + delay;
+			if T::Scheduler::schedule_named(
+				(CONNECTFOUR_ID, index).encode(),
+				DispatchTime::At(when),
+				None,
+				63,
+				frame_system::RawOrigin::Signed(sender).into(),
+				Call::do_something(index).into(),
+			).is_err() {
+				frame_support::print("LOGIC ERROR: test_schedule/schedule_named failed");
+				return Err(Error::<T>::ScheduleError)?;
+			}
+
 			Ok(())
 		}
 	}

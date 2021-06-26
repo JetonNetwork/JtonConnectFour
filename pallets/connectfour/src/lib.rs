@@ -18,6 +18,8 @@ use sp_runtime::{
 use sp_std::vec::{
 	Vec
 };
+use pallet_matchmaker::MatchFunc;
+
 use log::info;
 
 // Re-export pallet items so that they can be accessed from the crate namespace.
@@ -95,6 +97,9 @@ pub mod pallet {
 		type Scheduler: Named<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
 
 		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
+
+		type MatchMaker: MatchFunc<Self::AccountId>;
+
 		// /// Weight information for extrinsics in this pallet.
 		//type WeightInfo: WeightInfo;
 	}
@@ -272,6 +277,17 @@ pub mod pallet {
 					Ok(())
 				},
 			}
+		}
+
+		/// Create game for two players
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn queue(origin: OriginFor<T>) -> DispatchResult {
+			
+			let sender = ensure_signed(origin)?;
+
+			let test = T::MatchMaker::add_queue(sender);
+			
+			Ok(())
 		}
 
 		/// Create game for two players

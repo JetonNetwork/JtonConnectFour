@@ -301,6 +301,7 @@ impl pallet_connectfour::Config for Runtime {
 	type Randomness = RandomnessCollectiveFlip;
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
+	type MatchMaker = MatchMaker;
 	//type WeightInfo = pallet_connectfour::weights::SubstrateWeight<Runtime>;
 }
 

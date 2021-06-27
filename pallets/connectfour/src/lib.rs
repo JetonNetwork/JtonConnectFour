@@ -199,6 +199,9 @@ pub mod pallet {
 		NotPlayerTurn,
 		/// There was an error while trying to execute something in the logic mod.
 		WrongLogic,
+		/// Unable to queue, make sure that the queue isn't duplicated.
+		UnableToQueue,
+
 	}
 
 	// Pallet implements [`Hooks`] trait to define some logic to execute in some context.
@@ -211,6 +214,15 @@ pub mod pallet {
 		fn on_initialize(_: T::BlockNumber) -> Weight {
 			// Anything that needs to be done at the start of the block.
 			// We don't do anything here.
+			
+			let result = T::MatchMaker::try_match();
+			match result {
+				Some(p) => {
+					//let board_id = Self::create_game(p[0].clone(), p[1].clone());
+				},
+				None => {},
+			}
+
 			0
 		}
 
@@ -285,8 +297,8 @@ pub mod pallet {
 			
 			let sender = ensure_signed(origin)?;
 
-			let test = T::MatchMaker::add_queue(sender);
-			
+			ensure!(T::MatchMaker::add_queue(sender), Error::<T>::UnableToQueue);
+
 			Ok(())
 		}
 

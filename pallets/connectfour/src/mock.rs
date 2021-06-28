@@ -30,6 +30,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Config, Event<T>},
+		MatchMaker: pallet_matchmaker::{Pallet, Call, Storage, Event<T>},
 		ConnectFour: pallet_connectfour::{Pallet, Call, Config<T>, Storage, Event<T>},
 	}
 );
@@ -81,12 +82,17 @@ impl pallet_scheduler::Config for Test {
 	type WeightInfo = ();
 }
 
+impl pallet_matchmaker::Config for Test {
+	type Event = Event;
+}
+
 impl pallet_connectfour::Config for Test {
 	type Proposal = Call;
 	type Event = Event;
 	type Randomness = TestRandomness<Self>;
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
+	type MatchMaker = MatchMaker;
 }
 
 /// Build genesis storage according to the mock runtime.

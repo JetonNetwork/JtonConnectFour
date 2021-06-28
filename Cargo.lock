@@ -4025,7 +4025,7 @@ dependencies = [
 [[package]]
 name = "pallet-matchmaker"
 version = "0.1.0"
-source = "git+https://github.com/JetonNetwork/pallet-jton-matchmaker.git#3987790b8f08e7cacfa26891172db44d089a35b6"
+source = "git+https://github.com/JetonNetwork/pallet-jton-matchmaker.git#b541c8029328921df2ef8579fcd5b1d478931460"
 dependencies = [
  "frame-benchmarking",
  "frame-support",

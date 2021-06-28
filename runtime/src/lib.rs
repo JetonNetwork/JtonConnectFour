@@ -289,7 +289,7 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
 
-/// Used for test_module
+/// Used for matchmaking in pallets/connectfour.
 impl pallet_matchmaker::Config for Runtime {
 	type Event = Event;
 }

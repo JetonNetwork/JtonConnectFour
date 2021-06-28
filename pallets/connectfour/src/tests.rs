@@ -229,3 +229,42 @@ fn test_force_turn() {
 		assert!(!BoardSchedules::<Test>::contains_key(board_id));
 	});
 }
+
+#[test]
+fn test_matchmaker_game() {
+	new_test_ext().execute_with(|| {
+
+		let mut current_block:u64 = 100;
+
+		// start from block 100
+		run_to_block(current_block);
+
+		// queue up player 1
+		assert_ok!(ConnectFour::queue(Origin::signed(PLAYER_1 as u64)));
+
+		run_to_block(current_block + 1);
+		current_block = current_block + 1;
+
+		// try to queue again same player 1
+		assert_noop!(
+			ConnectFour::queue(Origin::signed(PLAYER_1 as u64)), 
+			Error::<Test>::AlreadyQueued
+		);
+
+		// queue up player 2
+		assert_ok!(ConnectFour::queue(Origin::signed(PLAYER_2 as u64)));
+
+		assert!(!PlayerBoard::<Test>::contains_key(PLAYER_1 as u64));
+
+		run_to_block(current_block + 1);
+		current_block = current_block + 1;
+
+		assert!(PlayerBoard::<Test>::contains_key(PLAYER_1 as u64));
+		
+		let board_id = PlayerBoard::<Test>::get(PLAYER_1 as u64);
+		let board = ConnectFour::boards(board_id);
+
+		assert_eq!(board.blue, PLAYER_2 as u64);
+
+	});
+}

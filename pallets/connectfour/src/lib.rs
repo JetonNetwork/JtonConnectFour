@@ -199,9 +199,8 @@ pub mod pallet {
 		NotPlayerTurn,
 		/// There was an error while trying to execute something in the logic mod.
 		WrongLogic,
-		/// Unable to queue, make sure that the queue isn't duplicated.
-		UnableToQueue,
-
+		/// Unable to queue, make sure you're not already queued.
+		AlreadyQueued,
 	}
 
 	// Pallet implements [`Hooks`] trait to define some logic to execute in some context.
@@ -218,7 +217,10 @@ pub mod pallet {
 			let result = T::MatchMaker::try_match();
 			match result {
 				Some(p) => {
-					//let board_id = Self::create_game(p[0].clone(), p[1].clone());
+					// Create new game
+					let _board_id = Self::create_game(p[0].clone(), p[1].clone());
+					// weights need to be adjusted
+					return 10_000 + T::DbWeight::get().reads_writes(1,1)
 				},
 				None => {},
 			}
@@ -291,13 +293,19 @@ pub mod pallet {
 			}
 		}
 
-		/// Create game for two players
+		/// Queue sender up for a game
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn queue(origin: OriginFor<T>) -> DispatchResult {
 			
 			let sender = ensure_signed(origin)?;
 
-			ensure!(T::MatchMaker::add_queue(sender), Error::<T>::UnableToQueue);
+			// Make sure player has no board open.
+			ensure!(!PlayerBoard::<T>::contains_key(&sender), Error::<T>::PlayerBoardExists);
+
+			// Add player to queue, duplicate check is done in matchmaker.
+			if !T::MatchMaker::add_queue(sender) {
+				return Err(Error::<T>::AlreadyQueued)?
+			} 
 
 			Ok(())
 		}
@@ -311,16 +319,15 @@ pub mod pallet {
 			// Don't allow playing against yourself.
 			ensure!(sender != opponent, Error::<T>::NoFakePlay);
 
+			// Don't allow queued player to create a game.
+			ensure!(!T::MatchMaker::is_queued(sender.clone()), Error::<T>::AlreadyQueued);
+
 			// Make sure players have no board open.
 			ensure!(!PlayerBoard::<T>::contains_key(&sender), Error::<T>::PlayerBoardExists);
 			ensure!(!PlayerBoard::<T>::contains_key(&opponent), Error::<T>::PlayerBoardExists);
 			
 			// Create new game
-			let board_id = Self::create_game(sender.clone(), opponent.clone());
-
-			// Add board to the players playing it.
-			<PlayerBoard<T>>::insert(sender, board_id);
-			<PlayerBoard<T>>::insert(opponent, board_id);
+			let _board_id = Self::create_game(sender.clone(), opponent.clone());
 
 			Ok(())
 		}
@@ -496,24 +503,34 @@ impl<T: Config> Pallet<T> {
 		red: T::AccountId, 
 		blue: T::AccountId
 	) -> T::Hash {
+
 		// get a random hash as board id
 		let board_id = Self::generate_random_hash(b"create", red.clone());
+
 		// calculate plyer to start the first turn, with the first byte of the board_id random hash
 		let next_player = if board_id.as_ref()[0] < 128 { PLAYER_1 } else { PLAYER_2 };
+
 		// get current blocknumber
 		let block_number = <frame_system::Pallet<T>>::block_number();
+
 		// create a new empty bgame oard
 		let board = BoardStruct {
 			id: board_id,
-			red: red,
-			blue: blue,
+			red: red.clone(),
+			blue: blue.clone(),
 			board: [[0u8; 6]; 7],
 			last_turn: block_number,
 			next_player: next_player,
 			board_state: BoardState::Running,
 		};
+
 		// insert the new board into the storage
 		<Boards<T>>::insert(board_id, board);
+
+		// Add board to the players playing it.
+		<PlayerBoard<T>>::insert(red, board_id);
+		<PlayerBoard<T>>::insert(blue, board_id);
+
 		// emit event for a new board creation
 		// Emit an event.
 		Self::deposit_event(Event::NewBoard(board_id));

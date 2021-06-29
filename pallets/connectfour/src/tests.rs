@@ -266,5 +266,30 @@ fn test_matchmaker_game() {
 
 		assert_eq!(board.blue, PLAYER_2 as u64);
 
+		if board.next_player == PLAYER_1 {
+			assert_ok!(ConnectFour::play_turn(Origin::signed(PLAYER_1 as u64), 0));
+			let board = ConnectFour::boards(board_id);
+			assert!(board.board_state == BoardState::Running);	
+			assert!(board.next_player == PLAYER_2);
+			assert_eq!(board.last_turn, current_block);
+
+			run_next_block();
+			current_block = current_block + 1;
+		}
+
+		assert_ok!(ConnectFour::play_turn(Origin::signed(PLAYER_2 as u64), 1));
+		let board = ConnectFour::boards(board_id);
+		assert_eq!(board.last_turn, current_block);
+		assert!(board.board_state == BoardState::Running);
+		assert!(board.next_player == PLAYER_1);
+
+		run_to_block(current_block + 10);
+		current_block = current_block + 10;
+
+		// check if force turn ended the game
+		let board = ConnectFour::boards(board_id);
+		assert_eq!(board.last_turn, current_block);
+		assert!(board.board_state == BoardState::Finished(board.blue));
+
 	});
 }

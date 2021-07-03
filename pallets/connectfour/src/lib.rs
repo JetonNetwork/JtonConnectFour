@@ -201,6 +201,8 @@ pub mod pallet {
 		WrongLogic,
 		/// Unable to queue, make sure you're not already queued.
 		AlreadyQueued,
+		/// Extrinsic is limited to founder.
+		OnlyFounderAllowed,
 	}
 
 	// Pallet implements [`Hooks`] trait to define some logic to execute in some context.
@@ -215,17 +217,16 @@ pub mod pallet {
 			// We don't do anything here.
 			
 			let result = T::MatchMaker::try_match();
-			match result {
-				Some(p) => {
-					// Create new game
-					let _board_id = Self::create_game(p[0].clone(), p[1].clone());
-					// weights need to be adjusted
-					return 10_000 + T::DbWeight::get().reads_writes(1,1)
-				},
-				None => {},
+
+			if !result.is_empty() && result.len() == 2 {
+				// Create new game
+				let _board_id = Self::create_game(result[0].clone(), result[1].clone());
+				// weights need to be adjusted
+				return 10_000 + T::DbWeight::get().reads_writes(1,1)
 			}
 
-			0
+			// return standard weigth for trying to fiond a match
+			return 10_000
 		}
 
 		// `on_finalize` is executed at the end of block after all extrinsic are dispatched.
@@ -293,7 +294,7 @@ pub mod pallet {
 			}
 		}
 
-		/// Queue sender up for a game
+		/// Queue sender up for a game, ranking brackets
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn queue(origin: OriginFor<T>) -> DispatchResult {
 			
@@ -302,10 +303,27 @@ pub mod pallet {
 			// Make sure player has no board open.
 			ensure!(!PlayerBoard::<T>::contains_key(&sender), Error::<T>::PlayerBoardExists);
 
+			let bracket: u8 = 0;
 			// Add player to queue, duplicate check is done in matchmaker.
-			if !T::MatchMaker::add_queue(sender) {
+			if !T::MatchMaker::add_queue(sender, bracket) {
 				return Err(Error::<T>::AlreadyQueued)?
 			} 
+
+			Ok(())
+		}
+
+		/// Empty all brackets, this is a founder only extrinsic.
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn empty_queue(origin: OriginFor<T>) -> DispatchResult {
+			
+			let sender = ensure_signed(origin)?;
+
+			// Make sure sender is founder.
+			ensure!(sender == Self::founder_key().unwrap(), Error::<T>::OnlyFounderAllowed);
+
+			let bracket: u8 = 0;
+			// Empty queues
+			T::MatchMaker::empty_queue(bracket);
 
 			Ok(())
 		}
@@ -320,7 +338,7 @@ pub mod pallet {
 			ensure!(sender != opponent, Error::<T>::NoFakePlay);
 
 			// Don't allow queued player to create a game.
-			ensure!(!T::MatchMaker::is_queued(sender.clone()), Error::<T>::AlreadyQueued);
+			//ensure!(!T::MatchMaker::is_queued(sender.clone()), Error::<T>::AlreadyQueued);
 
 			// Make sure players have no board open.
 			ensure!(!PlayerBoard::<T>::contains_key(&sender), Error::<T>::PlayerBoardExists);

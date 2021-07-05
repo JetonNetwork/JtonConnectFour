@@ -338,7 +338,8 @@ pub mod pallet {
 			ensure!(sender != opponent, Error::<T>::NoFakePlay);
 
 			// Don't allow queued player to create a game.
-			//ensure!(!T::MatchMaker::is_queued(sender.clone()), Error::<T>::AlreadyQueued);
+			ensure!(!T::MatchMaker::is_queued(sender.clone()), Error::<T>::AlreadyQueued);
+			ensure!(!T::MatchMaker::is_queued(opponent.clone()), Error::<T>::AlreadyQueued);
 
 			// Make sure players have no board open.
 			ensure!(!PlayerBoard::<T>::contains_key(&sender), Error::<T>::PlayerBoardExists);
@@ -580,7 +581,6 @@ impl<T: Config> Pallet<T> {
 
 		Some(schedule_task_id)
 	}
-
 
 }
 

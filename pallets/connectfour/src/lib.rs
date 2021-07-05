@@ -532,7 +532,7 @@ impl<T: Config> Pallet<T> {
 		// get current blocknumber
 		let block_number = <frame_system::Pallet<T>>::block_number();
 
-		// create a new empty bgame oard
+		// create a new empty game
 		let board = BoardStruct {
 			id: board_id,
 			red: red.clone(),

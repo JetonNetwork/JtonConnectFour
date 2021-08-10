@@ -289,9 +289,17 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
 
-/// Used for test_module
+parameter_types! {
+	pub const AmountPlayers: u8 = 2;
+	pub const AmountBrackets: u8 = 3;
+}
+
+
+/// Used for matchmaking in pallets/connectfour.
 impl pallet_matchmaker::Config for Runtime {
 	type Event = Event;
+	type AmountPlayers = AmountPlayers;
+	type AmountBrackets = AmountBrackets;
 }
 
 /// Configure the pallet-connectfour in pallets/connectfour.
@@ -301,6 +309,7 @@ impl pallet_connectfour::Config for Runtime {
 	type Randomness = RandomnessCollectiveFlip;
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
+	type MatchMaker = MatchMaker;
 	//type WeightInfo = pallet_connectfour::weights::SubstrateWeight<Runtime>;
 }
 

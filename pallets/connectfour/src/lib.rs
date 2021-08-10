@@ -71,6 +71,7 @@ pub struct BoardStruct<Hash, AccountId, BlockNumber, BoardState> {
 
 const PLAYER_1: u8 = 1;
 const PLAYER_2: u8 = 2;
+const MAX_GAMES_PER_BLOCK: u8 = 10;
 const MAX_BLOCKS_PER_TURN: u8 = 10;
 const CLEANUP_BOARDS_AFTER: u8 = 20;
 
@@ -216,17 +217,24 @@ pub mod pallet {
 			// Anything that needs to be done at the start of the block.
 			// We don't do anything here.
 			
-			let result = T::MatchMaker::try_match();
-
-			if !result.is_empty() && result.len() == 2 {
-				// Create new game
-				let _board_id = Self::create_game(result[0].clone(), result[1].clone());
-				// weights need to be adjusted
-				return 10_000 + T::DbWeight::get().reads_writes(1,1)
+			// initial weights
+			let mut tot_weights = 10_000;
+			for _i in 0..MAX_GAMES_PER_BLOCK {
+				// try to create a match till we reached max games or no more matches available
+				let result = T::MatchMaker::try_match();
+				// if result is not empty we have a valid match
+				if !result.is_empty() {
+					// Create new game
+					let _game_id = Self::create_game(result[0].clone(), result[1].clone());
+					// weights need to be adjusted
+					tot_weights = tot_weights + T::DbWeight::get().reads_writes(1,1);
+					continue;
+				}
+				break;
 			}
 
 			// return standard weigth for trying to fiond a match
-			return 10_000
+			return tot_weights
 		}
 
 		// `on_finalize` is executed at the end of block after all extrinsic are dispatched.
